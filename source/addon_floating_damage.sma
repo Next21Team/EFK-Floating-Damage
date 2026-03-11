@@ -1,11 +1,12 @@
 new const PluginName[ ] =					"[AMXX] Addon: Floating Damage";
-new const PluginVersion[ ] =				"1.0.6";
+new const PluginVersion[ ] =				"1.0.6 [EFK]";
 new const PluginAuthor[ ] =					"Yoshioka Haruki";
 new const PluginPrefix[ ] =					"Floating Damager";
 
 /* ~ [ Includes ] ~ */
 #include <amxmodx>
 #include <fakemeta_util>
+#include <hamsandwich>
 #include <xs>
 
 /**
@@ -17,9 +18,10 @@ new const PluginPrefix[ ] =					"Floating Damager";
  * Don't touch this 😡
  */
 #if !defined _reapi_included
-	#include <hamsandwich>
 	#include <non_reapi_support>
 #endif
+
+#include <efk_core>
 
 /* ~ [ Plugin Settings ] ~ */
 const MAX_BODY_PARTS =						4;
@@ -39,7 +41,7 @@ new const Float: DamagerTestDamages[ 2 ] = {
  * Whether to enable Damager for new players.
  * If you turn off this function, you need to go to the menu and turn it on yourself
  */
-#define EnableDamagerForNewPlayers
+// #define EnableDamagerForNewPlayers
 
 /**
  * With the settings enabled, while Damager is flying up,
@@ -66,6 +68,8 @@ const EntityDamagerSkinsCount =				10;
 
 new gl_bitsUserDamagerEnabled;
 new gl_iUserDamagerSkin[ MAX_PLAYERS + 1 ];
+
+new HamHook:g_pHamTakeDamagePost;
 
 /* ~ [ Macroses ] ~ */
 #if !defined Vector3
@@ -116,29 +120,27 @@ public plugin_init( )
 {
 	register_plugin( PluginName, PluginVersion, PluginAuthor );
 
-#if defined _reapi_included
-	/* -> ReGameDLL <- */
-	RegisterHookChain( RG_CBasePlayer_TakeDamage, "CBasePlayer__TakeDamage_Post", true );
-#else
 	/* -> HamSandwich: Player <- */
-	RegisterHam( Ham_TakeDamage, "player", "CBasePlayer__TakeDamage_Post", true );
+	RegisterHam( Ham_TakeDamage, "player", "CBasePlayer__TakeDamage_Pre", false );
+	DisableHamForward( g_pHamTakeDamagePost = RegisterHam( Ham_TakeDamage, "player", "CBasePlayer__TakeDamage_Post", true ));
 
+#if !defined _reapi_included
 	/* -> HamSandwich: Entity <- */
 	RegisterHam( Ham_Think, EntityDamagerReference, "CEntity__Think_Post", true );
 #endif
 
 	/* -> Lang Files <- */
-	register_dictionary( "floating_damage.txt" );
+	// register_dictionary( "floating_damage.txt" );
 
 	/* -> Register Commands <- */
-	new DamagerCommands[ ][ ] = {
-		"damager", "say /damager", "say damager", "say_team /damager", "say_team damager"
-	};
+	// new DamagerCommands[ ][ ] = {
+	// 	"damager", "say /damager", "say damager", "say_team /damager", "say_team damager"
+	// };
 
-	register_cmd_list(clcmd, DamagerCommands, "ClientCommand__DamagerMenu" );
+	// register_cmd_list(clcmd, DamagerCommands, "ClientCommand__DamagerMenu" );
 
 	/* -> Register Menus <- */
-	register_menucmd( register_menuid( "MenuDamager_Show" ), ( MENU_KEY_0|MENU_KEY_1|MENU_KEY_2|MENU_KEY_3 ), "MenuDamager_Handler" );
+	// register_menucmd( register_menuid( "MenuDamager_Show" ), ( MENU_KEY_0|MENU_KEY_1|MENU_KEY_2|MENU_KEY_3 ), "MenuDamager_Handler" );
 
 	/* -> Other <- */
 #if AMXX_VERSION_NUM <= 182
@@ -183,13 +185,24 @@ public ClientCommand__DamagerMenu( const pPlayer )
 	return PLUGIN_HANDLED;
 }
 
-/* ~ [ ReGameDLL ] ~ */
+/* ~ [ HamSandwich ] ~ */
+public CBasePlayer__TakeDamage_Pre( const pVictim, const pInflictor, const pAttacker, const Float: flDamage )
+{
+	if ( GetHamReturnStatus() != HAM_SUPERCEDE )
+		EnableHamForward( g_pHamTakeDamagePost );
+}
+
 public CBasePlayer__TakeDamage_Post( const pVictim, const pInflictor, const pAttacker, const Float: flDamage )
 {
+	DisableHamForward(g_pHamTakeDamagePost)
+
 	if ( !is_user_alive( pAttacker ) || pVictim == pAttacker || !UserDamagerEnabled( pAttacker ) )
 		return;
 
 	if ( get_member( pVictim, m_iTeam ) == get_member( pAttacker, m_iTeam ) )
+		return;
+
+	if ( kc_get_user_visibility( pVictim ) == VisInvision && kc_get_vision( pAttacker ) != VisionFull )
 		return;
 
 	new Vector3( vecOrigin ); get_entvar( pVictim, var_origin, vecOrigin );
@@ -427,7 +440,7 @@ public CDamager__GetPosition( const pPlayer, const pVictim, Vector3( vecVictimOr
 
 	new Vector3( vecViewOfs );
 	get_entvar( pVictim, var_view_ofs, vecViewOfs );
-	vecViewOfs[ 2 ] += 30.0;
+	// vecViewOfs[ 2 ] += 30.0;
 
 	xs_vec_add( vecVictimOrigin, vecViewOfs, vecOut );
 	xs_vec_add_scaled( vecOut, vecDirection, 20.0, vecOut );
