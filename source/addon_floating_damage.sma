@@ -179,6 +179,11 @@ public client_putinserver( pPlayer )
 #endif
 		BIT_SUB( gl_bitsUserDamagerEnabled, BIT_PLAYER( pPlayer ) );
 
+public efk_player_options_update( pPlayer, iOptions )
+{
+	( iOptions & OPTION_DAMAGER ) ? BIT_ADD( gl_bitsUserDamagerEnabled, BIT_PLAYER( pPlayer ) ) : BIT_SUB( gl_bitsUserDamagerEnabled, BIT_PLAYER( pPlayer ) );
+}
+
 public ClientCommand__DamagerMenu( const pPlayer )
 {
 	MenuDamager_Show( pPlayer );
@@ -202,7 +207,7 @@ public CBasePlayer__TakeDamage_Post( const pVictim, const pInflictor, const pAtt
 	if ( get_member( pVictim, m_iTeam ) == get_member( pAttacker, m_iTeam ) )
 		return;
 
-	if ( kc_get_user_visibility( pVictim ) == VisInvision && kc_get_vision( pAttacker ) != VisionFull )
+	if ( kc_player_get_visibility( pVictim ) == VisInvision && kc_player_get_vision( pAttacker ) != VisionFull )
 		return;
 
 	new Vector3( vecOrigin ); get_entvar( pVictim, var_origin, vecOrigin );
