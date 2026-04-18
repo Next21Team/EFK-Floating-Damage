@@ -207,7 +207,7 @@ public CBasePlayer__TakeDamage_Post( const pVictim, const pInflictor, const pAtt
 	if ( get_member( pVictim, m_iTeam ) == get_member( pAttacker, m_iTeam ) )
 		return;
 
-	if ( kc_player_get_visibility( pVictim ) == VisInvision && kc_player_get_vision( pAttacker ) != VisionFull )
+	if ( kc_player_get_visibility( pVictim ) == VIS_INVISION && kc_player_get_vision( pAttacker ) != VISION_FULL )
 		return;
 
 	new Vector3( vecOrigin ); get_entvar( pVictim, var_origin, vecOrigin );
