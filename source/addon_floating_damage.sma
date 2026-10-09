@@ -99,6 +99,8 @@ new HamHook:g_pHamTakeDamagePost;
 /* ~ [ AMX Mod X ] ~ */
 public plugin_natives( )
 {
+	register_library( "floating_damage" );
+	register_native( "floating_damage_show", "native_floating_damage_show" );
 	register_native( "get_user_damager_status", "native_get_user_damager_status" );
 	register_native( "set_user_damager_status", "native_set_user_damager_status" );
 	register_native( "get_user_damager_skin", "native_get_user_damager_skin" );
@@ -415,7 +417,7 @@ public CDamager__Think( const pEntity )
 
 public CDamager__FindActiveEntity( const pPlayer, const pVictim )
 {
-	if ( !IsUserValid( pVictim ) )
+	if ( pVictim == NULLENT )
 		return NULLENT;
 
 	new pEntity = MaxClients;
@@ -445,7 +447,8 @@ public CDamager__GetPosition( const pPlayer, const pVictim, Vector3( vecVictimOr
 
 	new Vector3( vecViewOfs );
 	get_entvar( pVictim, var_view_ofs, vecViewOfs );
-	// vecViewOfs[ 2 ] += 30.0;
+	if ( !IsUserValid( pVictim ) )
+		vecViewOfs[ 2 ] = 30.0;
 
 	xs_vec_add( vecVictimOrigin, vecViewOfs, vecOut );
 	xs_vec_add_scaled( vecOut, vecDirection, 20.0, vecOut );
@@ -463,6 +466,23 @@ public CDamager__PrepareBody( Float: flDamage )
 }
 
 /* ~ [ Natives ] ~ */
+public bool: native_floating_damage_show( const iPlugin, const iParams )
+{
+	enum { arg_attacker = 1, arg_victim, arg_damage };
+
+	new pAttacker = get_param( arg_attacker );
+	new pVictim = get_param( arg_victim );
+	new Float: flDamage = get_param_f( arg_damage );
+
+	if ( !is_user_alive( pAttacker ) || !UserDamagerEnabled( pAttacker ) || !is_entity( pVictim ) || flDamage < 1.0 )
+		return false;
+
+	new Vector3( vecOrigin ); get_entvar( pVictim, var_origin, vecOrigin );
+	CDamager__SpawnEntity( pAttacker, pVictim, vecOrigin, flDamage, false );
+
+	return true;
+}
+
 public bool: native_get_user_damager_status( const iPlugin, const iParams )
 {
 	enum { arg_player = 1 };
